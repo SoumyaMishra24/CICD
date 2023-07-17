@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: openjdk8
+  build:
+    commands:
+      - yum update -y
+      - |
+        if [ $CODEBUILD_INITIATOR == "jenkins" ]; then
+          wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+          rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+          yum install -y jenkins
+          systemctl start jenkins
+        elif [ $CODEBUILD_INITIATOR == "sonarqube" ]; then
+          wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-8.9.1.44547.zip
+          unzip sonarqube-8.9.1.44547.zip
+          mv sonarqube-8.9.1.44547 /opt/sonarqube
+          /opt/sonarqube/bin/linux-x86-64/sonar.sh start
+        fi
