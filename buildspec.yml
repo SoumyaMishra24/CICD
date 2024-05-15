@@ -3,19 +3,27 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      java: openjdk8
+      docker: 18
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 339713083730.dkr.ecr.us-east-1.amazonaws.com
   build:
     commands:
-      - yum update -y
-      - |
-        if [ $CODEBUILD_INITIATOR == "jenkins" ]; then
-          wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
-          rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
-          yum install -y jenkins
-          systemctl start jenkins
-        elif [ $CODEBUILD_INITIATOR == "sonarqube" ]; then
-          wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-8.9.1.44547.zip
-          unzip sonarqube-8.9.1.44547.zip
-          mv sonarqube-8.9.1.44547 /opt/sonarqube
-          /opt/sonarqube/bin/linux-x86-64/sonar.sh start
-        fi
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t user-service-repo .
+      - docker tag user-service-repo:latest 339713083730.dkr.ecr.us-east-1.amazonaws.com/user-service-repo:latest
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image to ECR...
+      - docker push 339713083730.dkr.ecr.us-east-1.amazonaws.com/user-service-repo:latest
+artifacts:
+  files:
+    - '**/*'
+  discard-paths: yes
+
+cache:
+  paths:
+    - '/root/.cache/pip'
